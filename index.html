@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>工大祭 注文フォーム</title>
+  <!-- QRコード生成用のライブラリ -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 15px; background: #f8f9fa; margin: 0; }
+    h2 { text-align: center; color: #333; }
+    .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .product-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding: 10px 0; }
+    .product-item:last-child { border-bottom: none; }
+    
+    /* 画像と商品名の並び用のCSS */
+    .product-info-left { display: flex; align-items: center; gap: 15px; }
+    .product-image { width: 70px; height: 70px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; background-color: #f4f4f4; }
+
+    /* 数量コントロール用のCSS */
+    .qty-control { display: flex; align-items: center; }
+    .qty-btn { background: #e9ecef; border: 1px solid #ccc; width: 36px; height: 36px; border-radius: 4px; font-size: 20px; font-weight: bold; cursor: pointer; color: #333; padding: 0; }
+    .qty-btn:active { background: #d4d4d4; }
+    .qty-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .qty-input { width: 50px; height: 36px; text-align: center; border: 1px solid #ccc; border-left: none; border-right: none; font-size: 18px; box-sizing: border-box; -moz-appearance: textfield; border-radius: 0; margin: 0; }
+    .qty-input::-webkit-outer-spin-button, .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    input[type="text"] { width: 100%; padding: 10px; box-sizing: border-box; font-size: 16px; margin-top: 5px; }
+    .btn { display: block; width: 100%; padding: 15px; background: #007bff; color: white; border: none; border-radius: 5px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 20px; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+    #result-screen { display: none; text-align: center; }
+    .id-box { background: #e9ecef; padding: 10px; margin: 10px 0; border-radius: 5px; font-size: 20px; font-weight: bold; }
+    .warning { color: red; font-weight: bold; font-size: 14px; margin-bottom: 15px; }
+    #qrcode { display: flex; justify-content: center; margin: 20px 0; }
+
+    /* 画像拡大モーダル用のCSS */
+    #image-modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    #modal-image {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    /* エラーメッセージ用のCSS */
+    .error-msg {
+      color: #d9534f;
+      font-size: 14px;
+      font-weight: bold;
+      margin-top: 8px;
+      display: none;
+    }
+    /* --- 追加：確認モーダル用のCSS --- */
+    .modal-overlay {
+      display: none; /* 初期状態では隠しておく */
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+    .modal-buttons {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+    }
+    .btn-cancel, .btn-confirm {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    .btn-cancel {
+      background: #e0e0e0;
+      color: #333;
+    }
+    .btn-confirm {
+      background: #007bff;
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 画像拡大用モーダル -->
+  <div id="image-modal" onclick="closeImageModal()">
+    <img id="modal-image" src="" alt="拡大画像">
+  </div>
+
+  <!-- 注文入力画面 -->
+  <div id="order-screen">
+    <h2>C3模擬店 注文フォーム</h2>
+    
+    <div class="card">
+      <label><b>お名前</b><br>
+      <input type="text" id="nickname" placeholder="例：海三 酱 " required>
+      <div id="name-error" class="error-msg">お名前を入力してください</div>
+      </label>
+    </div>
+
+    <p style="text-align: center; font-size: 13px; color: #666; margin: 0 0 10px 0;">
+      商品画像をタップすると拡大表示できます
+    </p>
+
+    <div class="card" id="product-list">
+      <p style="text-align:center;">商品データを読み込み中...</p>
+      <!-- ここにGASから取得した商品が並ぶ -->
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0;">合計金額: <span id="total-price">0</span> 円</h3>
+      <div id="order-error" class="error-msg">注文を入力してください</div>
+      <div id ="stock-error" class ="error-msg">申し訳ありません！タッチの差で一部の商品が売り切れ、または在庫不足になりました。もう一度リロードして入力をお願いします。</div>
+    </div>
+
+    <button id="submit-btn" class="btn" onclick="submitOrder()">注文を確定する</button>
+    <button id="reload-btn" class="btn btn-danger" style="display:none;" onclick="reloadProducts()">最新の在庫に更新する</button>
+  </div>
+
+  <div id="confirm-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>注文内容の確認</h3>
+      
+      <div id="modal-order-details" style="text-align: left; margin: 15px 0; padding: 15px; background: #f5f5f5; border-radius: 8px; font-size: 15px; max-height: 250px; overflow-y: auto;">
+      </div>
+
+      <p style="font-size: 14px; margin-bottom: 15px;">この内容で注文を確定してもよろしいですか？</p>
+      
+      <div class="modal-buttons">
+        <button class="btn-cancel" onclick="closeConfirmModal()">キャンセル</button>
+        <button class="btn-confirm" onclick="executeOrder()">確定する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 注文完了（QR＆ID表示）画面 -->
+  <div id="result-screen">
+    <h2>注文完了！</h2>
+    <div class="card">
+      <p class="warning">⚠️ この画面をスクリーンショットして保存してください ⚠️</p>
+      
+      <h3>【お会計用 QRコード】</h3>
+      <p>まずはレジにてこちらのQRをご提示ください</p>
+      <div id="qrcode"></div>
+      <p>合計金額: <b style="font-size:24px;" id="result-total"></b> 円</p>
+
+      <hr style="margin: 20px 0; border:0; border-top:1px dashed #ccc;">
+
+      <h3>【お受取用 ID】</h3>
+      <p>お会計後、各提供口でお呼びします</p>
+      
+      <div id="food-id-area" class="id-box" style="display:none;">
+        飲食: <span id="food-id" style="color:#d9534f; font-size:28px;"></span>
+      </div>
+      
+      <div id="goods-id-area" class="id-box" style="display:none;">
+        グッズ: <span id="goods-id" style="color:#5cb85c; font-size:28px;"></span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let productsData = [];
+
+    // 画面が開いた時にGASから商品データを取得
+    window.onload = function() {
+      if (typeof google !== 'undefined') {
+        google.script.run.withSuccessHandler(renderProducts).getProducts();
+      } else {
+        // GAS環境以外（プレビューなど）でのエラー回避（テストデータは表示しません）
+        document.getElementById('product-list').innerHTML = '<p style="text-align:center; color:#666;">※プレビュー環境のため商品は表示されません。</p>';
+      }
+    };
+
+    //リロードする関数
+    function reloadProducts() {
+      // エラーメッセージとボタンを元の状態に戻す
+      document.getElementById('stock-error').style.display = 'none';
+      document.getElementById('reload-btn').style.display = 'none';
+      
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.style.display = 'block';
+      submitBtn.innerText = "注文を確定する";
+      submitBtn.disabled = false;
+
+      // ローディング文字を出して、GASからデータを再取得
+      document.getElementById('product-list').innerHTML = '<p style="text-align:center;">最新の在庫を確認中...</p>';
+      
+      if (typeof google !== 'undefined') {
+        google.script.run.withSuccessHandler(renderProducts).getProducts();
+      }
+      }
+
+    // 商品をHTMLに表示する処理
+  function renderProducts(products) {
+    productsData = products;
+    const container = document.getElementById('product-list');
+    
+    if (products.length === 0) {
+      container.innerHTML = '<p>現在注文できる商品がありません。</p>';
+      return;
+    }
+
+    let html = ''; 
+    let currentCategory = '';
+
+    products.forEach((p, index) => {
+      // === カテゴリの切り替わり判定 ===
+      if (currentCategory !== p.category) {
+        if (currentCategory !== '') {
+          html += '<div style="margin: 40px 0 20px 0; border-top;"></div>';
+        }
+        // カテゴリ名（「飲食」や「グッズ」）の見出しを表示
+        html += `<h3 style="margin-bottom: 15px; padding-left: 10px; border-left: 5px solid #ff6600; color: #333;">${p.category}</h3>`;
+        
+        currentCategory = p.category; // 現在のカテゴリを更新
+      }
+
+      // === 商品情報の生成 ===
+      const imageUrl = p.image ? p.image : 'https://placehold.co/150x150?text=No+Image';
+      const isSoldOut = p.stock <= 0;
+      const stockText = isSoldOut ? '<span style="color:red; font-weight:bold;">売り切れ</span>' : `<span style="color:#007bff; font-weight:bold;">残り: ${p.stock}個</span>`;
+
+      html += `
+        <div class="product-item">
+          <div class="product-info-left">
+            <img src="${imageUrl}" alt="${p.name}" class="product-image" onclick="openImageModal('${imageUrl}')" style="cursor: zoom-in; ${isSoldOut ? 'opacity: 0.5;' : ''}">
+            <div>
+              <b style="font-size: 18px; ${isSoldOut ? 'color: #999;' : ''}">${p.name}</b><br>
+              <span style="color:#666; font-size: 14px;">${p.price}円</span> <span style="font-size: 12px; color: #999;">(${p.category})</span><br>
+              <span style="font-size: 13px; display:inline-block; margin-top:4px;">${stockText}</span>
+            </div>
+          </div>
+          <div class="qty-control">
+            <button class="qty-btn" onclick="changeQty(${index}, -1, ${p.stock})" ${isSoldOut ? 'disabled' : ''}>－</button>
+            <input type="number" id="qty-${index}" class="qty-input" min="0" max="${p.stock}" value="0" readonly>
+            <button class="qty-btn" onclick="changeQty(${index}, 1, ${p.stock})" ${isSoldOut ? 'disabled' : ''}>＋</button>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+  }
+
+    // 画像拡大モーダルを開く処理
+    function openImageModal(imgSrc) {
+      document.getElementById('modal-image').src = imgSrc;
+      document.getElementById('image-modal').style.display = 'flex';
+    }
+
+    // 画像拡大モーダルを閉じる処理
+    function closeImageModal() {
+      document.getElementById('image-modal').style.display = 'none';
+    }
+
+    // 個数を増減する関数
+    function changeQty(index, delta, maxStock) {
+      const input = document.getElementById(`qty-${index}`);
+      let currentVal = parseInt(input.value) || 0;
+      let newVal = currentVal + delta;
+      
+      if (newVal < 0) newVal = 0;
+      if (newVal > maxStock) newVal = maxStock;
+      
+      input.value = newVal;
+      calcTotal();
+      
+      // 数量が変更されたら、注文未入力エラーを隠す
+      document.getElementById('order-error').style.display = 'none';
+    }
+
+    // 合計金額の計算
+    function calcTotal() {
+      let total = 0;
+      productsData.forEach((p, index) => {
+        const qty = parseInt(document.getElementById(`qty-${index}`).value) || 0;
+        total += p.price * qty;
+      });
+      document.getElementById('total-price').innerText = total;
+      return total;
+    }
+
+    // 名前が入力されたら、名前未入力エラーを隠す
+    document.getElementById('nickname').addEventListener('input', function() {
+      if (this.value.trim() !== '') {
+        document.getElementById('name-error').style.display = 'none';
+      }
+    });
+
+    // 注文送信処理
+    // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
+    // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
+   // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
+    function submitOrder() {
+      // 一旦エラーメッセージを両方隠す
+      document.getElementById('name-error').style.display = 'none';
+      document.getElementById('order-error').style.display = 'none';
+      document.getElementById('stock-error').style.display = 'none';
+
+      const nickname = document.getElementById('nickname').value.trim();
+      const total = calcTotal();
+
+      let hasError = false;
+
+      // エラーメッセージを表示
+      if (!nickname) {
+        document.getElementById('name-error').style.display = 'block';
+        document.getElementById('name-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        hasError = true;
+      }
+      if (total === 0) {
+        document.getElementById('order-error').style.display = 'block';
+        hasError = true;
+      }
+
+      // エラーがあったらここでストップ（モーダルは出さない）
+      if (hasError) return;
+
+      // ★追加：モーダルに表示する注文内容のHTMLを組み立てる
+      let detailsHtml = `<strong>お名前：</strong> ${nickname} 様<br><hr style="margin:10px 0; border:none; border-top:1px dashed #ccc;">`;
+      detailsHtml += `<div style="line-height: 1.8;">`;
+
+      // 選ばれた商品をループで探して文字にする
+      productsData.forEach((p, index) => {
+        const qty = parseInt(document.getElementById(`qty-${index}`).value) || 0;
+        if (qty > 0) {
+          detailsHtml += `・${p.name} × <strong>${qty}</strong><br>`;
+        }
+      });
+
+      detailsHtml += `</div><hr style="margin:10px 0; border:none; border-top:1px dashed #ccc;">`;
+      detailsHtml += `<div style="text-align: right; font-size: 18px;"><strong>合計: <span style="color: #000;">${total}円</span></strong></div>`;
+
+      // 組み立てた文字をモーダルの空箱に流し込む
+      document.getElementById('modal-order-details').innerHTML = detailsHtml;
+
+      // 確認モーダルを表示する！
+      document.getElementById('confirm-modal').style.display = 'flex';
+    }
+
+        // 2. モーダルの「キャンセル」が押された時の処理
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').style.display = 'none';
+    }
+
+    // 3. モーダルの「確定する」が押された時の処理（実際にGASへ送信）
+    function executeOrder() {
+      // まずモーダルを閉じる
+      closeConfirmModal();
+
+      // 以下は、元々のsubmitOrderの下半分にあったGASへ送信する処理です
+      const nickname = document.getElementById('nickname').value.trim();
+      const total = calcTotal();
+      
+      const orderItems = [];
+      productsData.forEach((p, index) => {
+        const qty = parseInt(document.getElementById(`qty-${index}`).value) || 0;
+        if (qty > 0) {
+          orderItems.push({
+            id: p.id,
+            name: p.name,
+            category: p.category,
+            price: p.price,
+            qty: qty
+          });
+        }
+      });
+
+      const orderData = {
+        nickname: nickname,
+        items: orderItems,
+        total: total
+      };
+
+      const btn = document.getElementById('submit-btn');
+      btn.innerText = "注文処理中...";
+      btn.disabled = true;
+
+      if (typeof google !== 'undefined') {
+        google.script.run.withSuccessHandler(showResult).placeOrder(orderData);
+      } else {
+        // GAS環境以外（プレビューなど）でのエラー回避
+        alert("※プレビュー環境のため注文処理は実行されません。");
+        btn.innerText = "注文を確定する";
+        btn.disabled = false;
+      }
+    }
+
+    // 注文成功後に結果画面を出す処理
+    function showResult(result) {
+      if (result.error === 'sold_out') {
+        document.getElementById('stock-error').style.display = 'block';
+        document.getElementById('submit-btn').style.display = 'none';
+        document.getElementById('reload-btn').style.display = 'block';
+        return;
+      }
+      document.getElementById('order-screen').style.display = 'none';
+      document.getElementById('result-screen').style.display = 'block';
+
+      new QRCode(document.getElementById("qrcode"), {
+        text: String(result.orderId), 
+        width: 150,
+        height: 150
+      });
+
+      document.getElementById('result-total').innerText = result.total;
+
+      if (result.foodId !== '-') {
+        document.getElementById('food-id').innerText = result.foodId;
+        document.getElementById('food-id-area').style.display = 'block';
+      }
+
+      if (result.goodsId !== '-') {
+        document.getElementById('goods-id').innerText = result.goodsId;
+        document.getElementById('goods-id-area').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

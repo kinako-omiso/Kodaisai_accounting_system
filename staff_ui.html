@@ -1,0 +1,35 @@
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('register')">レジ</div>
+  <div class="tab" onclick="switchTab('food'); loadOrders('food');">飲食</div>
+  <div class="tab" onclick="switchTab('goods'); loadOrders('goods');">グッズ</div>
+</div>
+
+<div id="register" class="content active">
+  <h3>お会計（QRスキャン）</h3>
+  <p style="font-size: 12px; color: #666;">この枠をタップしてからバーコードリーダーで読み取ってください</p>
+  <input type="text" id="scan-input" placeholder="ここにスキャン...">
+  <p id="scan-error" style="color: red; font-weight: bold; display: none; margin-top: 10px;"></p>
+  
+  <div id="scan-result" style="display: none;">
+    <div class="order-box">
+      <p>注文番号: <b id="reg-id" style="font-size: 20px;"></b></p>
+      <p>名前: <span id="reg-name"></span></p>
+      <p>内容: <br><b id="reg-details" style="font-size: 24px; line-height: 1.5; color: #333;"></b></p>
+      <p style="font-size: 24px; color: #d9534f; font-weight: bold; margin: 10px 0;">合計: <span id="reg-total"></span> 円</p>
+      <p id="reg-status" style="color: green; font-weight: bold;"></p>
+    </div>
+    <button id="pay-btn" class="btn" onclick="completePayment()">会計完了</button>
+  </div>
+</div>
+
+<div id="food" class="content">
+  <h3>飲食 提供待ちリスト</h3>
+  <button class="refresh-btn" onclick="loadOrders('food')">🔄 最新情報に更新</button>
+  <div id="food-list">読込中...</div>
+</div>
+
+<div id="goods" class="content">
+  <h3>グッズ 提供待ちリスト</h3>
+  <button class="refresh-btn" onclick="loadOrders('goods')">🔄 最新情報に更新</button>
+  <div id="goods-list">読込中...</div>
+</div>
