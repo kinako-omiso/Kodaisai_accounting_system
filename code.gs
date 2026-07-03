@@ -4,7 +4,6 @@ const SPREADSHEET_ID = PropertiesService.getScriptProperties().getProperty('SPRE
 const SHEET_INVENTORY = '在庫管理';
 const SHEET_ORDERS = '注文履歴';
 
-// Webアプリを開いたときに呼ばれる関数2
 function doGet(e) {
   if (e.parameter && e.parameter.page === 'staff') {
     return HtmlService.createHtmlOutputFromFile('staff')
@@ -17,7 +16,6 @@ function doGet(e) {
   }
 }
 
-// スプレッドシートから在庫一覧を取得する
 function getProducts() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   
@@ -174,7 +172,7 @@ function placeOrder(orderData) {
   };
 }
 
-//スキャンした注文IDから情報を取得
+
 function getOrderInfo(orderId) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
@@ -192,7 +190,7 @@ function getOrderInfo(orderId) {
       };
     }
   }
-  return null; // 見つからない場合
+  return null; 
 }
 
 function completePayment(orderId) {
@@ -202,14 +200,13 @@ function completePayment(orderId) {
   
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == orderId) {
-      sheet.getRange(i + 1, 6).setValue('済'); // F列（会計状態）を済に
+      sheet.getRange(i + 1, 6).setValue('済'); 
       return true;
     }
   }
   return false;
 }
 
-//未提供のリストを取得
 function getPendingOrders(type) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
@@ -236,7 +233,7 @@ function getPendingOrders(type) {
       const items = detailsStr.split(', ');
       const targetItems = [];
       
-      // 注文内容から、現在のタブ(type)に一致する商品だけを抽出
+  
       items.forEach(itemStr => {
         const lastXIndex = itemStr.lastIndexOf('x');
         if (lastXIndex !== -1) {
@@ -249,7 +246,6 @@ function getPendingOrders(type) {
       
       const filteredDetails = targetItems.join(', ');
       
-      // 対象の商品が含まれている場合のみリストに追加
       if (type === 'food' && foodStatus === '未' && targetItems.length > 0) {
         pendingList.push({ row: i + 1, displayId: row[6], nickname: row[2], details: filteredDetails });
       } else if (type === 'goods' && goodsStatus === '未' && targetItems.length > 0) {

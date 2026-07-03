@@ -60,7 +60,6 @@
             passInput.disabled = false;
             
             if (htmlString) {
-              // ログイン画面を消す
               document.getElementById('login-screen').style.display = 'none';
               
               // 空箱を表示して、GASから送られてきたHTMLを注入する
@@ -80,7 +79,6 @@
                 scanInput.focus();
               }
             } else {
-              // 不正解エラー
               errorMsg.style.display = 'block';
               passInput.value = '';
               passInput.focus();
@@ -91,7 +89,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      // パスワード欄でEnterキーを押してもログインできるようにする
       const passInput = document.getElementById('staff-pass');
       passInput.addEventListener('keypress', function(e) {
         if (e.key === 'Enter') {
@@ -113,8 +110,7 @@
     });
 
 
-    // タブの切り替え
-   // 定期更新用のタイマーIDを管理する変数
+
     let autoRefreshTimer = null;
 
     // タブの切り替え
@@ -154,7 +150,6 @@
 
         loadOrders(tabId);
         
-        // 10秒ごと（10000ミリ秒）に、裏側で静かにリストを更新するタイマーをセット
         autoRefreshTimer = setInterval(() => {
           loadOrders(tabId, true); 
         }, 10000);

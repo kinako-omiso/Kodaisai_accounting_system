@@ -63,7 +63,6 @@
       margin-top: 8px;
       display: none;
     }
-    /* --- 追加：確認モーダル用のCSS --- */
     .modal-overlay {
       display: none; /* 初期状態では隠しておく */
       position: fixed;
@@ -187,7 +186,6 @@
   <script>
     let productsData = [];
 
-    // 画面が開いた時にGASから商品データを取得
     window.onload = function() {
       if (typeof google !== 'undefined') {
         google.script.run.withSuccessHandler(renderProducts).getProducts();
@@ -197,9 +195,8 @@
       }
     };
 
-    //リロードする関数
+
     function reloadProducts() {
-      // エラーメッセージとボタンを元の状態に戻す
       document.getElementById('stock-error').style.display = 'none';
       document.getElementById('reload-btn').style.display = 'none';
       
@@ -230,18 +227,15 @@
     let currentCategory = '';
 
     products.forEach((p, index) => {
-      // === カテゴリの切り替わり判定 ===
       if (currentCategory !== p.category) {
         if (currentCategory !== '') {
           html += '<div style="margin: 40px 0 20px 0; border-top;"></div>';
         }
-        // カテゴリ名（「飲食」や「グッズ」）の見出しを表示
         html += `<h3 style="margin-bottom: 15px; padding-left: 10px; border-left: 5px solid #ff6600; color: #333;">${p.category}</h3>`;
         
-        currentCategory = p.category; // 現在のカテゴリを更新
+        currentCategory = p.category; 
       }
 
-      // === 商品情報の生成 ===
       const imageUrl = p.image ? p.image : 'https://placehold.co/150x150?text=No+Image';
       const isSoldOut = p.stock <= 0;
       const stockText = isSoldOut ? '<span style="color:red; font-weight:bold;">売り切れ</span>' : `<span style="color:#007bff; font-weight:bold;">残り: ${p.stock}個</span>`;
@@ -279,7 +273,7 @@
       document.getElementById('image-modal').style.display = 'none';
     }
 
-    // 個数を増減する関数
+  
     function changeQty(index, delta, maxStock) {
       const input = document.getElementById(`qty-${index}`);
       let currentVal = parseInt(input.value) || 0;
@@ -291,11 +285,10 @@
       input.value = newVal;
       calcTotal();
       
-      // 数量が変更されたら、注文未入力エラーを隠す
+
       document.getElementById('order-error').style.display = 'none';
     }
 
-    // 合計金額の計算
     function calcTotal() {
       let total = 0;
       productsData.forEach((p, index) => {
@@ -306,7 +299,6 @@
       return total;
     }
 
-    // 名前が入力されたら、名前未入力エラーを隠す
     document.getElementById('nickname').addEventListener('input', function() {
       if (this.value.trim() !== '') {
         document.getElementById('name-error').style.display = 'none';
@@ -314,11 +306,7 @@
     });
 
     // 注文送信処理
-    // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
-    // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
-   // 1. 注文ボタンが押された時の処理（チェックしてモーダルを開く）
     function submitOrder() {
-      // 一旦エラーメッセージを両方隠す
       document.getElementById('name-error').style.display = 'none';
       document.getElementById('order-error').style.display = 'none';
       document.getElementById('stock-error').style.display = 'none';
@@ -328,7 +316,7 @@
 
       let hasError = false;
 
-      // エラーメッセージを表示
+
       if (!nickname) {
         document.getElementById('name-error').style.display = 'block';
         document.getElementById('name-error').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -339,14 +327,12 @@
         hasError = true;
       }
 
-      // エラーがあったらここでストップ（モーダルは出さない）
+
       if (hasError) return;
 
-      // ★追加：モーダルに表示する注文内容のHTMLを組み立てる
       let detailsHtml = `<strong>お名前：</strong> ${nickname} 様<br><hr style="margin:10px 0; border:none; border-top:1px dashed #ccc;">`;
       detailsHtml += `<div style="line-height: 1.8;">`;
 
-      // 選ばれた商品をループで探して文字にする
       productsData.forEach((p, index) => {
         const qty = parseInt(document.getElementById(`qty-${index}`).value) || 0;
         if (qty > 0) {
@@ -357,24 +343,19 @@
       detailsHtml += `</div><hr style="margin:10px 0; border:none; border-top:1px dashed #ccc;">`;
       detailsHtml += `<div style="text-align: right; font-size: 18px;"><strong>合計: <span style="color: #000;">${total}円</span></strong></div>`;
 
-      // 組み立てた文字をモーダルの空箱に流し込む
       document.getElementById('modal-order-details').innerHTML = detailsHtml;
 
-      // 確認モーダルを表示する！
       document.getElementById('confirm-modal').style.display = 'flex';
     }
 
-        // 2. モーダルの「キャンセル」が押された時の処理
     function closeConfirmModal() {
       document.getElementById('confirm-modal').style.display = 'none';
     }
 
-    // 3. モーダルの「確定する」が押された時の処理（実際にGASへ送信）
     function executeOrder() {
       // まずモーダルを閉じる
       closeConfirmModal();
 
-      // 以下は、元々のsubmitOrderの下半分にあったGASへ送信する処理です
       const nickname = document.getElementById('nickname').value.trim();
       const total = calcTotal();
       
