@@ -17,7 +17,7 @@ function doGet(e) {
   }
 }
 
-// スプレッドシートから在庫一覧を取得する（index.htmlから呼ばれる）
+// スプレッドシートから在庫一覧を取得する
 function getProducts() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   
@@ -87,7 +87,7 @@ function getProducts() {
   return products;
 }
 
-// 注文を受け取ってスプレッドシートに書き込む
+
 
 function placeOrder(orderData) {
 
@@ -95,10 +95,8 @@ function placeOrder(orderData) {
   const stockSheet = ss.getSheetByName(SHEET_INVENTORY);
   const stockData = stockSheet.getDataRange().getValues();
   
-  // 1. 在庫管理シートから「存在する商品名」のリストを作成（1行目の見出しを除く）
   const validNames = stockData.slice(1).map(row => String(row[2]));
 
-  // 2. 送られてきた注文データを1つずつ検査する
   for (let i = 0; i < orderData.items.length; i++) {
     const item = orderData.items[i];
 
@@ -126,7 +124,7 @@ function placeOrder(orderData) {
   });
 
   if (isSoldOutError) {
-    return { error: 'sold_out' }; // 売り切れエラーをフロントに返す
+    return { error: 'sold_out' }; 
   }
  
 
@@ -176,7 +174,7 @@ function placeOrder(orderData) {
   };
 }
 
-// [スタッフ用] 1. レジ用：スキャンした注文IDから情報を取得
+//スキャンした注文IDから情報を取得
 function getOrderInfo(orderId) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
@@ -197,7 +195,6 @@ function getOrderInfo(orderId) {
   return null; // 見つからない場合
 }
 
-// [スタッフ用] 2. レジ用：会計を「済」にする
 function completePayment(orderId) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
@@ -212,13 +209,12 @@ function completePayment(orderId) {
   return false;
 }
 
-// [スタッフ用] 3. 提供用：未提供のリストを取得（type: 'food' または 'goods'）
+//未提供のリストを取得
 function getPendingOrders(type) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName(SHEET_ORDERS);
   const data = sheet.getDataRange().getValues();
   
-  // 商品マスタを取得して、商品名から区分（飲食/グッズ）を判定できるようにする
   const invSheet = ss.getSheetByName(SHEET_INVENTORY);
   const invData = invSheet.getDataRange().getValues();
   const categoryMap = {};
@@ -264,17 +260,14 @@ function getPendingOrders(type) {
   return pendingList;
 }
 
-// [スタッフ用] 4. 提供用：提供完了＆在庫を減らす
 function completeDelivery(row, type) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const orderSheet = ss.getSheetByName(SHEET_ORDERS);
   const invSheet = ss.getSheetByName(SHEET_INVENTORY);
   
-  // 提供ステータスを「済」にする
   if (type === 'food') orderSheet.getRange(row, 8).setValue('済');
   if (type === 'goods') orderSheet.getRange(row, 10).setValue('済');
-  
-  // 注文内容を読み取って在庫を減らす
+
   const orderDetails = orderSheet.getRange(row, 4).getValue();
   const items = orderDetails.split(', ');
   const invData = invSheet.getDataRange().getValues();
